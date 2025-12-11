@@ -10,8 +10,8 @@ Django-based poker tournament management system that provides real-time tourname
 
 ### Setup and Running
 ```bash
-# Navigate to Django project directory
-cd django_poker
+# Install dependencies
+pip install -r requirements.txt
 
 # Run development server
 python manage.py runserver
@@ -34,7 +34,7 @@ python manage.py runbot
 ```
 
 ### Database
-- Uses SQLite by default (`db.sqlite3` in `django_poker/` directory)
+- Uses SQLite by default (`db.sqlite3` in root directory)
 - All models defined in `core/models.py`
 
 ## Architecture
@@ -43,7 +43,7 @@ python manage.py runbot
 - **Project:** `poker_system/` - Django project configuration
 - **App:** `core/` - Main application containing all business logic
 - **App:** `bot/` - Telegram bot integration for player registration and login
-- Working directory for Django commands: `django_poker/`
+- Working directory: Project root (all Django commands run from root directory)
 
 ### Data Model Hierarchy
 
@@ -103,12 +103,12 @@ All API endpoints return JSON and use @csrf_exempt for easier integration:
 
 ### Template System
 
-Templates are in `django_poker/templates/`:
+Templates are in `templates/`:
 - `base.html` - Base template with common structure
 - `core/` subdirectory for app-specific templates
 - Forms use shadcn-style Tailwind CSS classes (see `core/forms.py` widgets)
 
-Static files in `django_poker/static/`:
+Static files in `static/`:
 - `css/globals.css` - Global styles
 - `js/timer.js` - Timer polling and display logic
 - `js/players.js` - Player registration/elimination
