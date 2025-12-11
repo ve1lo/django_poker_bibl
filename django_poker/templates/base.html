@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Poker System{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        background: '#09090b',
+                        foreground: '#fafafa',
+                        card: '#18181b',
+                        'card-foreground': '#fafafa',
+                        popover: '#18181b',
+                        'popover-foreground': '#fafafa',
+                        primary: '#3b82f6',
+                        'primary-foreground': '#ffffff',
+                        secondary: '#27272a',
+                        'secondary-foreground': '#fafafa',
+                        muted: '#27272a',
+                        'muted-foreground': '#a1a1aa',
+                        accent: '#27272a',
+                        'accent-foreground': '#fafafa',
+                        destructive: '#ef4444',
+                        'destructive-foreground': '#fafafa',
+                        border: '#27272a',
+                        input: '#27272a',
+                        ring: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="{% static 'css/globals.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-background text-foreground min-h-screen font-sans antialiased selection:bg-primary/30">
+    <div class="relative flex min-h-screen flex-col">
+        <header
+            class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div class="container mx-auto px-4 flex h-14 max-w-screen-2xl items-center">
+                <div class="mr-4 flex">
+                    <a class="mr-6 flex items-center space-x-2" href="/">
+                        <span class="font-bold sm:inline-block">Poker System</span>
+                    </a>
+                    <nav class="flex items-center space-x-6 text-sm font-medium">
+                        <a class="transition-colors hover:text-foreground/80 text-foreground/60"
+                            href="{% url 'paid_tournaments_stats' %}">Paid Stats</a>
+                        <a class="transition-colors hover:text-foreground/80 text-foreground/60"
+                            href="{% url 'free_tournaments_stats' %}">Free Stats</a>
+                        {% if player.is_admin %}
+                        <a class="transition-colors hover:text-foreground/80 text-foreground/60"
+                            href="/admin/">Admin</a>
+                        {% endif %}
+                    </nav>
+                </div>
+                <div class="ml-auto flex items-center space-x-4">
+                    {% if player %}
+                    <a href="{% url 'profile' %}"
+                        class="text-sm font-medium text-foreground/80 hover:text-primary transition-colors">
+                        👤 Profile
+                    </a>
+                    {% else %}
+                    <a href="https://t.me/Poker_bibl_bot" target="_blank"
+                        class="text-sm font-medium text-primary hover:text-primary/80">Login with Telegram</a>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+        <main class="flex-1 container mx-auto px-4 py-6">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

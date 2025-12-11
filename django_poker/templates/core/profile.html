@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-8 animate-in fade-in duration-500">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1
+                class="text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                Profile
+            </h1>
+            <p class="text-muted-foreground mt-1">Your player statistics and history</p>
+        </div>
+        <a href="{% url 'logout' %}"
+            class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-destructive/50 text-destructive bg-background hover:bg-destructive hover:text-destructive-foreground h-10 px-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" x2="9" y1="12" y2="12"/>
+            </svg>
+            Logout
+        </a>
+    </div>
+
+    <!-- User Info Card -->
+    <div class="rounded-xl border border-border/50 bg-card/50 p-6">
+        <div class="flex items-center gap-4">
+            <div
+                class="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
+                {{ player.first_name|first|default:player.username|first|upper }}
+            </div>
+            <div>
+                <h2 class="text-2xl font-semibold">{{ player.first_name|default:player.username }}</h2>
+                <p class="text-muted-foreground">Telegram ID: {{ player.telegram_id }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-xl border border-border/50 bg-card/50 p-6">
+            <div class="text-sm font-medium text-muted-foreground">Total Games</div>
+            <div class="mt-2 text-3xl font-bold">{{ stats.total_games }}</div>
+        </div>
+        <div class="rounded-xl border border-border/50 bg-card/50 p-6">
+            <div class="text-sm font-medium text-muted-foreground">Wins</div>
+            <div class="mt-2 text-3xl font-bold text-green-500">{{ stats.total_wins }}</div>
+        </div>
+        <div class="rounded-xl border border-border/50 bg-card/50 p-6">
+            <div class="text-sm font-medium text-muted-foreground">Total Points</div>
+            <div class="mt-2 text-3xl font-bold text-primary">{{ stats.total_points }}</div>
+        </div>
+        <div class="rounded-xl border border-border/50 bg-card/50 p-6">
+            <div class="text-sm font-medium text-muted-foreground">Avg Place</div>
+            <div class="mt-2 text-3xl font-bold">{{ stats.avg_place }}</div>
+        </div>
+    </div>
+
+    <!-- Financial Stats -->
+    <div class="rounded-xl border border-border/50 bg-card/50 p-6">
+        <h3 class="text-lg font-semibold mb-4">Financial Statistics (Paid Tournaments)</h3>
+        <div class="grid gap-6 md:grid-cols-3">
+            <div class="p-4 rounded-lg bg-background/50">
+                <div class="text-sm font-medium text-muted-foreground">Total Spent</div>
+                <div class="mt-2 text-2xl font-bold text-red-500">${{ stats.total_spent|floatformat:0 }}</div>
+                <div class="text-xs text-muted-foreground mt-1">Buy-ins + Rebuys + Add-ons</div>
+            </div>
+            <div class="p-4 rounded-lg bg-background/50">
+                <div class="text-sm font-medium text-muted-foreground">Total Winnings</div>
+                <div class="mt-2 text-2xl font-bold text-green-500">${{ stats.total_winnings|floatformat:0 }}</div>
+                <div class="text-xs text-muted-foreground mt-1">Prize money won</div>
+            </div>
+            <div class="p-4 rounded-lg bg-background/50">
+                <div class="text-sm font-medium text-muted-foreground">Profit / Loss</div>
+                <div class="mt-2 text-2xl font-bold {% if stats.profit_loss >= 0 %}text-green-500{% else %}text-red-500{% endif %}">
+                    {% if stats.profit_loss >= 0 %}+{% endif %}${{ stats.profit_loss|floatformat:0 }}
+                </div>
+                <div class="text-xs text-muted-foreground mt-1">
+                    {% if stats.profit_loss >= 0 %}
+                        In profit 📈
+                    {% else %}
+                        In loss 📉
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tournament History Tabs -->
+    <div class="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-border/50 bg-muted/20">
+            <button data-tab="free" class="tab-button flex-1 px-6 py-4 text-sm font-medium transition-colors bg-background text-foreground shadow-sm">
+                Free Tournaments
+            </button>
+            <button data-tab="paid" class="tab-button flex-1 px-6 py-4 text-sm font-medium transition-colors hover:bg-background/50 hover:text-foreground">
+                Paid Tournaments
+            </button>
+        </div>
+
+        <!-- Free Tournaments Tab -->
+        <div id="tab-free" class="tab-content p-6">
+            <div class="relative w-full overflow-auto">
+                <table class="w-full caption-bottom text-sm">
+                    <thead class="[&_tr]:border-b [&_tr]:border-border/50">
+                        <tr class="border-b transition-colors">
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Date</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Tournament</th>
+                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground">Place</th>
+                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground">Points</th>
+                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground">Bounties</th>
+                        </tr>
+                    </thead>
+                    <tbody class="[&_tr:last-child]:border-0">
+                        {% for reg in free_tournaments %}
+                        <tr class="border-b border-border/30 transition-colors hover:bg-muted/50">
+                            <td class="p-4 align-middle text-muted-foreground">{{ reg.tournament.date|date:"M j, Y" }}</td>
+                            <td class="p-4 align-middle">
+                                <a href="{% url 'tournament_info' reg.tournament.id %}"
+                                   class="font-medium text-primary hover:underline">
+                                    {{ reg.tournament.name }}
+                                </a>
+                            </td>
+                            <td class="p-4 align-middle text-center">
+                                {% if reg.place == 1 %}
+                                <span class="inline-flex items-center rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-500">
+                                    1st 🏆
+                                </span>
+                                {% elif reg.place == 2 %}
+                                <span class="inline-flex items-center rounded-full bg-gray-400/10 px-2.5 py-0.5 text-xs font-semibold text-gray-400">
+                                    2nd 🥈
+                                </span>
+                                {% elif reg.place == 3 %}
+                                <span class="inline-flex items-center rounded-full bg-orange-400/10 px-2.5 py-0.5 text-xs font-semibold text-orange-400">
+                                    3rd 🥉
+                                </span>
+                                {% elif reg.place %}
+                                <span class="font-medium">{{ reg.place }}</span>
+                                {% else %}
+                                <span class="text-muted-foreground">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 align-middle text-center">
+                                {% if reg.points > 0 %}
+                                <span class="font-bold text-primary">{{ reg.points }}</span>
+                                {% else %}
+                                <span class="text-muted-foreground">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 align-middle text-center">
+                                {% if reg.bounty_count > 0 %}
+                                <span class="font-medium text-amber-400">🎯 {{ reg.bounty_count }}</span>
+                                {% else %}
+                                <span class="text-muted-foreground">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-muted-foreground">No free tournaments played yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paid Tournaments Tab -->
+        <div id="tab-paid" class="tab-content hidden p-6">
+            <div class="relative w-full overflow-auto">
+                <table class="w-full caption-bottom text-sm">
+                    <thead class="[&_tr]:border-b [&_tr]:border-border/50">
+                        <tr class="border-b transition-colors">
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Date</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Tournament</th>
+                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground">Place</th>
+                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Payout</th>
+                        </tr>
+                    </thead>
+                    <tbody class="[&_tr:last-child]:border-0">
+                        {% for item in paid_tournaments %}
+                        <tr class="border-b border-border/30 transition-colors hover:bg-muted/50">
+                            <td class="p-4 align-middle text-muted-foreground">{{ item.registration.tournament.date|date:"M j, Y" }}</td>
+                            <td class="p-4 align-middle">
+                                <a href="{% url 'tournament_info' item.registration.tournament.id %}"
+                                   class="font-medium text-primary hover:underline">
+                                    {{ item.registration.tournament.name }}
+                                </a>
+                            </td>
+                            <td class="p-4 align-middle text-center">
+                                {% if item.registration.place == 1 %}
+                                <span class="inline-flex items-center rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-500">
+                                    1st 🏆
+                                </span>
+                                {% elif item.registration.place == 2 %}
+                                <span class="inline-flex items-center rounded-full bg-gray-400/10 px-2.5 py-0.5 text-xs font-semibold text-gray-400">
+                                    2nd 🥈
+                                </span>
+                                {% elif item.registration.place == 3 %}
+                                <span class="inline-flex items-center rounded-full bg-orange-400/10 px-2.5 py-0.5 text-xs font-semibold text-orange-400">
+                                    3rd 🥉
+                                </span>
+                                {% elif item.registration.place %}
+                                <span class="font-medium">{{ item.registration.place }}</span>
+                                {% else %}
+                                <span class="text-muted-foreground">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 align-middle text-right">
+                                {% if item.payout %}
+                                <span class="font-bold text-green-500 text-lg">${{ item.payout|floatformat:0 }}</span>
+                                {% else %}
+                                <span class="text-muted-foreground">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-muted-foreground">No paid tournaments played yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab Switching
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+
+                // Update buttons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('bg-background', 'text-foreground', 'shadow-sm');
+                    btn.classList.add('hover:bg-background/50', 'hover:text-foreground');
+                });
+                button.classList.add('bg-background', 'text-foreground', 'shadow-sm');
+                button.classList.remove('hover:bg-background/50', 'hover:text-foreground');
+
+                // Update content
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            });
+        });
+    });
+</script>
+{% endblock %}

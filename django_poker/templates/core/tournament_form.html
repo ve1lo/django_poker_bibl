@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto animate-in fade-in duration-500">
+    <div class="mb-8">
+        <a href="{% url 'dashboard' %}"
+            class="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+            Back to Dashboard
+        </a>
+        <h1
+            class="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            Create Tournament</h1>
+        <p class="text-muted-foreground mt-1">Set up a new poker event.</p>
+    </div>
+
+    <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-8 shadow-lg">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Template Selection -->
+            <div class="space-y-2">
+                <label for="{{ form.template.id_for_label }}"
+                    class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {{ form.template.label }}
+                </label>
+                {{ form.template }}
+                <p class="text-sm text-muted-foreground">Select a template to auto-fill settings and structure.</p>
+            </div>
+
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                    <span class="w-full border-t border-border"></span>
+                </div>
+                <div class="relative flex justify-center text-xs uppercase">
+                    <span class="bg-card px-2 text-muted-foreground">Tournament Details</span>
+                </div>
+            </div>
+
+            {% for field in form %}
+            {% if field.name != 'template' %}
+            <div class="space-y-2">
+                <label for="{{ field.id_for_label }}"
+                    class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.help_text %}
+                <p class="text-sm text-muted-foreground">{{ field.help_text }}</p>
+                {% endif %}
+                {% if field.errors %}
+                <p class="text-sm font-medium text-destructive">{{ field.errors.0 }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            <div class="pt-4 flex gap-4">
+                <button type="submit"
+                    class="flex-1 inline-flex items-center justify-center rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 shadow-lg shadow-primary/20">
+                    Create Tournament
+                </button>
+                <a href="{% url 'dashboard' %}"
+                    class="inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

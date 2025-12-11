@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="space-y-8 animate-in fade-in duration-500">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                Free Tournaments Statistics
+            </h1>
+            <p class="text-muted-foreground mt-1">Performance metrics and leaderboards</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Season and Date Filters -->
+    <div class="rounded-xl border border-border/50 bg-card/50 p-4">
+        <div class="flex items-center gap-4 flex-wrap">
+            <!-- Season Selector -->
+            <div class="flex items-center gap-2">
+                <label for="season-select" class="text-sm font-medium">Season:</label>
+                <select id="season-select" onchange="applySeasonFilter()" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option value="">All Time</option>
+                    <option value="winter">Winter ❄️</option>
+                    <option value="spring">Spring 🌸</option>
+                    <option value="summer" selected>Summer ☀️</option>
+                    <option value="autumn">Autumn 🍂</option>
+                </select>
+            </div>
+
+            <!-- Year Selector -->
+            <div class="flex items-center gap-2">
+                <label for="year-select" class="text-sm font-medium">Year:</label>
+                <select id="year-select" onchange="applySeasonFilter()" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+
+            <div class="border-l border-border h-8 mx-2"></div>
+
+            <!-- Custom Date Range -->
+            <div class="flex items-center gap-2">
+                <label for="date-from" class="text-sm font-medium">From:</label>
+                <input type="date" id="date-from" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="date-to" class="text-sm font-medium">To:</label>
+                <input type="date" id="date-to" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            </div>
+            <button onclick="applyDateFilter()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">
+                Apply Filter
+            </button>
+            <button onclick="clearDateFilter()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4">
+                Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
+        <div class="flex border-b border-border/50 bg-muted/20">
+            <button data-tab="results" class="tab-button flex-1 px-6 py-4 text-sm font-medium transition-colors bg-background text-foreground shadow-sm">
+                Tournament Results
+            </button>
+            <button data-tab="bounties" class="tab-button flex-1 px-6 py-4 text-sm font-medium transition-colors hover:bg-background/50 hover:text-foreground">
+                Bounty Hunters 🎯
+            </button>
+        </div>
+
+        <!-- Tournament Results Tab -->
+        <div id="tab-results" class="tab-content p-6">
+            <div class="mb-4">
+                <h2 class="text-xl font-semibold mb-2">Player Results Matrix</h2>
+                <p class="text-sm text-muted-foreground">Shows placement and points for each player in each tournament</p>
+            </div>
+            <div class="overflow-x-auto">
+                <div id="results-table-container" class="min-w-full">
+                    <p class="text-center text-muted-foreground py-8">Loading tournament results...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bounty Hunters Tab -->
+        <div id="tab-bounties" class="tab-content hidden p-6">
+            <div class="mb-4">
+                <h2 class="text-xl font-semibold mb-2">Bounty Hunters</h2>
+                <p class="text-sm text-muted-foreground">Players ranked by total bounties (eliminations)</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full caption-bottom text-sm">
+                    <thead class="[&_tr]:border-b [&_tr]:border-border/50">
+                        <tr class="border-b transition-colors">
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Rank</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Player</th>
+                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground">Tournaments</th>
+                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Total Bounties</th>
+                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Avg per Tournament</th>
+                        </tr>
+                    </thead>
+                    <tbody class="[&_tr:last-child]:border-0" id="bounty-leaders">
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-muted-foreground">Loading bounty hunters...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get current season
+    function getCurrentSeason() {
+        const month = new Date().getMonth() + 1; // 1-12
+        if (month >= 3 && month <= 5) return 'spring';
+        if (month >= 6 && month <= 8) return 'summer';
+        if (month >= 9 && month <= 11) return 'autumn';
+        return 'winter';
+    }
+
+    // Load available years
+    async function loadAvailableYears() {
+        try {
+            const response = await fetch('/api/stats/tournament-years/?type=FREE');
+            const data = await response.json();
+
+            const yearSelect = document.getElementById('year-select');
+            yearSelect.innerHTML = '';
+
+            if (data.years && data.years.length > 0) {
+                data.years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+
+                    // Select current year by default
+                    if (year === new Date().getFullYear()) {
+                        option.selected = true;
+                    }
+
+                    yearSelect.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.value = new Date().getFullYear();
+                option.textContent = new Date().getFullYear();
+                option.selected = true;
+                yearSelect.appendChild(option);
+            }
+        } catch (error) {
+            console.error('Error loading years:', error);
+            // Fallback to current year
+            const yearSelect = document.getElementById('year-select');
+            yearSelect.innerHTML = `<option value="${new Date().getFullYear()}" selected>${new Date().getFullYear()}</option>`;
+        }
+    }
+
+    // Tab Switching
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+
+                // Update buttons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('bg-background', 'text-foreground', 'shadow-sm');
+                    btn.classList.add('hover:bg-background/50', 'hover:text-foreground');
+                });
+                button.classList.add('bg-background', 'text-foreground', 'shadow-sm');
+                button.classList.remove('hover:bg-background/50', 'hover:text-foreground');
+
+                // Update content
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            });
+        });
+
+        // Load available years first, then set defaults and load data
+        loadAvailableYears().then(() => {
+            // Set current season as default
+            const currentSeason = getCurrentSeason();
+            document.getElementById('season-select').value = currentSeason;
+
+            // Load data for all tabs with current season and year
+            loadTournamentResults();
+            loadBountyLeaders();
+        });
+    });
+
+    // Load tournament results matrix
+    async function loadTournamentResults() {
+        try {
+            let url = '/api/stats/free/results/';
+            const params = new URLSearchParams();
+
+            const season = document.getElementById('season-select').value;
+            const year = document.getElementById('year-select').value;
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+
+            if (season) {
+                params.append('season', season);
+                if (year) params.append('year', year);
+            } else {
+                if (dateFrom) params.append('date_from', dateFrom);
+                if (dateTo) params.append('date_to', dateTo);
+            }
+
+            if (params.toString()) url += '?' + params.toString();
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const container = document.getElementById('results-table-container');
+
+            if (data.players && data.players.length > 0) {
+                let html = '<table class="w-full caption-bottom text-sm border-collapse">';
+
+                // Header
+                html += '<thead class="sticky top-0 bg-card z-10">';
+                html += '<tr class="border-b border-border/50">';
+                html += '<th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground sticky left-0 bg-card">Player</th>';
+
+                data.tournaments.forEach(tournament => {
+                    html += `<th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground min-w-[120px]">
+                        <div class="text-xs">${tournament.name}</div>
+                        <div class="text-xs text-muted-foreground">${new Date(tournament.date).toLocaleDateString()}</div>
+                    </th>`;
+                });
+                html += '</tr></thead>';
+
+                // Body
+                html += '<tbody>';
+                data.players.forEach(playerData => {
+                    html += '<tr class="border-b border-border/30 transition-colors hover:bg-muted/50">';
+                    html += `<td class="p-4 align-middle font-medium sticky left-0 bg-card">${playerData.player_name}</td>`;
+
+                    data.tournaments.forEach(tournament => {
+                        const result = playerData.results[tournament.id];
+                        let cellContent = '-';
+                        let cellClass = 'text-muted-foreground';
+
+                        if (result) {
+                            if (result.place === 1) {
+                                cellContent = `🏆 1st<br><span class="text-xs text-primary">+${result.points} pts</span>`;
+                                cellClass = 'text-yellow-500 font-bold';
+                            } else if (result.place === 2) {
+                                cellContent = `🥈 2nd<br><span class="text-xs text-primary">+${result.points} pts</span>`;
+                                cellClass = 'text-gray-400 font-semibold';
+                            } else if (result.place === 3) {
+                                cellContent = `🥉 3rd<br><span class="text-xs text-primary">+${result.points} pts</span>`;
+                                cellClass = 'text-orange-400 font-semibold';
+                            } else {
+                                cellContent = `${result.place}th<br><span class="text-xs text-primary">+${result.points} pts</span>`;
+                                cellClass = 'text-foreground';
+                            }
+                        }
+
+                        html += `<td class="p-4 align-middle text-center ${cellClass}">${cellContent}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p class="text-center text-muted-foreground py-8">No tournament data available for selected period</p>';
+            }
+        } catch (error) {
+            console.error('Error loading tournament results:', error);
+        }
+    }
+
+    // Load bounty leaders
+    async function loadBountyLeaders() {
+        try {
+            let url = '/api/stats/free/bounties/';
+            const params = new URLSearchParams();
+
+            const season = document.getElementById('season-select').value;
+            const year = document.getElementById('year-select').value;
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+
+            if (season) {
+                params.append('season', season);
+                if (year) params.append('year', year);
+            } else {
+                if (dateFrom) params.append('date_from', dateFrom);
+                if (dateTo) params.append('date_to', dateTo);
+            }
+
+            if (params.toString()) url += '?' + params.toString();
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const tbody = document.getElementById('bounty-leaders');
+
+            if (data.leaders && data.leaders.length > 0) {
+                tbody.innerHTML = data.leaders.map((leader, index) => {
+                    let rankDisplay = index + 1;
+                    let rankClass = '';
+
+                    if (index === 0) {
+                        rankDisplay = '🥇';
+                        rankClass = 'text-2xl';
+                    } else if (index === 1) {
+                        rankDisplay = '🥈';
+                        rankClass = 'text-2xl';
+                    } else if (index === 2) {
+                        rankDisplay = '🥉';
+                        rankClass = 'text-2xl';
+                    }
+
+                    return `
+                        <tr class="border-b border-border/30 transition-colors hover:bg-muted/50">
+                            <td class="p-4 align-middle ${rankClass}">${rankDisplay}</td>
+                            <td class="p-4 align-middle">
+                                <div class="font-medium">${leader.player_name}</div>
+                            </td>
+                            <td class="p-4 align-middle text-center">
+                                <span class="font-medium">${leader.tournaments_played}</span>
+                            </td>
+                            <td class="p-4 align-middle text-right">
+                                <span class="font-bold text-amber-500 text-lg">🎯 ${leader.total_bounties}</span>
+                            </td>
+                            <td class="p-4 align-middle text-right">
+                                <span class="text-muted-foreground">${leader.avg_bounties.toFixed(1)}</span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-muted-foreground">No bounty data available for selected period</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading bounty leaders:', error);
+        }
+    }
+
+    // Apply season filter
+    function applySeasonFilter() {
+        // Clear custom dates when season is selected
+        if (document.getElementById('season-select').value) {
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+        }
+        loadTournamentResults();
+        loadBountyLeaders();
+    }
+
+    // Apply date filter
+    function applyDateFilter() {
+        // Clear season when custom dates are used
+        document.getElementById('season-select').value = '';
+        loadTournamentResults();
+        loadBountyLeaders();
+    }
+
+    // Clear date filter
+    function clearDateFilter() {
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        const currentSeason = getCurrentSeason();
+        document.getElementById('season-select').value = currentSeason;
+
+        // Reset year to current year
+        const currentYear = new Date().getFullYear();
+        const yearSelect = document.getElementById('year-select');
+        for (let option of yearSelect.options) {
+            if (parseInt(option.value) === currentYear) {
+                option.selected = true;
+                break;
+            }
+        }
+
+        applySeasonFilter();
+    }
+</script>
+{% endblock %}

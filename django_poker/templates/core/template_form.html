@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto animate-in fade-in duration-500">
+    <div class="mb-8">
+        <a href="{% url 'template_list' %}"
+            class="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+            Back to Templates
+        </a>
+        <h1
+            class="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            {{ title }}</h1>
+        <p class="text-muted-foreground mt-1">Define the structure for your tournaments.</p>
+    </div>
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+
+        <!-- Main Template Settings -->
+        <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-8 shadow-lg">
+            <h2 class="text-xl font-semibold mb-6">General Settings</h2>
+            <div class="grid gap-6">
+                {% for field in form %}
+                <div class="space-y-2">
+                    <label for="{{ field.id_for_label }}"
+                        class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {{ field.label }}
+                    </label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <p class="text-sm text-muted-foreground">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                    <p class="text-sm font-medium text-destructive">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Levels Formset -->
+        <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-8 shadow-lg">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold">Structure Levels</h2>
+                <button type="button" id="add-level"
+                    class="inline-flex items-center justify-center rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 px-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="mr-2">
+                        <path d="M5 12h14" />
+                        <path d="M12 5v14" />
+                    </svg>
+                    Add Level
+                </button>
+            </div>
+
+            {{ formset.management_form }}
+
+            <div class="relative w-full overflow-auto">
+                <table class="w-full caption-bottom text-sm" id="levels-table">
+                    <thead class="[&_tr]:border-b">
+                        <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[80px]">
+                                Level</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Small Blind
+                            </th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Big Blind
+                            </th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Ante</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Duration (m)
+                            </th>
+                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-[80px]">
+                                Break</th>
+                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground w-[60px]">
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="[&_tr:last-child]:border-0">
+                        {% for form in formset %}
+                        <tr
+                            class="level-row border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                            {{ form.id }}
+                            <td class="p-4 align-middle">{{ form.level_number }}</td>
+                            <td class="p-4 align-middle">{{ form.small_blind }}</td>
+                            <td class="p-4 align-middle">{{ form.big_blind }}</td>
+                            <td class="p-4 align-middle">{{ form.ante }}</td>
+                            <td class="p-4 align-middle">{{ form.duration }}</td>
+                            <td class="p-4 align-middle text-center">
+                                <div class="flex justify-center">
+                                    {{ form.is_break }}
+                                </div>
+                            </td>
+                            <td class="p-4 align-middle text-right">
+                                {% if form.instance.pk %}
+                                <div class="hidden">{{ form.DELETE }}</div>
+                                <button type="button"
+                                    class="delete-row text-destructive hover:text-destructive/80 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M3 6h18" />
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                    </svg>
+                                </button>
+                                {% else %}
+                                <button type="button"
+                                    class="remove-row text-destructive hover:text-destructive/80 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M3 6h18" />
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                    </svg>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit"
+                class="flex-1 inline-flex items-center justify-center rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 shadow-lg shadow-primary/20">
+                Save Template
+            </button>
+            <a href="{% url 'template_list' %}"
+                class="inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addButton = document.getElementById('add-level');
+        const tableBody = document.querySelector('#levels-table tbody');
+        const totalForms = document.getElementById('id_levels-TOTAL_FORMS');
+
+        // Function to update level numbers
+        function updateLevelNumbers() {
+            const rows = tableBody.querySelectorAll('tr.level-row');
+            rows.forEach((row, index) => {
+                const levelInput = row.querySelector('input[name$="-level_number"]');
+                if (levelInput) {
+                    levelInput.value = index + 1;
+                }
+            });
+        }
+
+        addButton.addEventListener('click', function () {
+            const formCount = parseInt(totalForms.value);
+            const emptyRow = tableBody.querySelector('tr:last-child').cloneNode(true);
+
+            // Clear values and update names/ids
+            const inputs = emptyRow.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                const name = input.name.replace(`-${formCount - 1}-`, `-${formCount}-`);
+                const id = input.id.replace(`-${formCount - 1}-`, `-${formCount}-`);
+                input.name = name;
+                input.id = id;
+                if (input.type !== 'checkbox' && input.type !== 'hidden') {
+                    input.value = '';
+                } else if (input.type === 'checkbox') {
+                    input.checked = false;
+                }
+            });
+
+            // Reset delete button if it was a cloned existing row
+            const deleteBtnCell = emptyRow.querySelector('td:last-child');
+            deleteBtnCell.innerHTML = `
+                <button type="button" class="remove-row text-destructive hover:text-destructive/80 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+            `;
+
+            tableBody.appendChild(emptyRow);
+            totalForms.value = formCount + 1;
+            updateLevelNumbers();
+        });
+
+        tableBody.addEventListener('click', function (e) {
+            if (e.target.closest('.remove-row')) {
+                const row = e.target.closest('tr');
+                row.remove();
+                // Don't decrement TOTAL_FORMS, Django handles missing indices
+                updateLevelNumbers();
+            } else if (e.target.closest('.delete-row')) {
+                const row = e.target.closest('tr');
+                const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                if (deleteInput) {
+                    deleteInput.checked = true;
+                    row.style.display = 'none';
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

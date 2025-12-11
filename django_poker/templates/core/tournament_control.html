@@ -1,0 +1,763 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight">{{ tournament.name }}</h1>
+            <p class="text-muted-foreground">{{ tournament.date|date:"F j, Y, P" }}</p>
+        </div>
+        <div class="flex gap-3 items-center">
+            <a href="{% url 'tournament_display' tournament.id %}" target="_blank"
+                class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                    <rect width="20" height="14" x="2" y="3" rx="2"/>
+                    <line x1="8" x2="16" y1="21" y2="21"/>
+                    <line x1="12" x2="12" y1="17" y2="21"/>
+                </svg>
+                Open Display
+            </a>
+            <span id="status-badge-top"
+                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80">
+                {{ tournament.status }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="w-full">
+        <div class="flex items-center p-1 text-muted-foreground bg-muted rounded-lg w-fit gap-1">
+            <button data-tab="timer"
+                class="tab-button inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-background text-foreground shadow-sm">
+                Timer
+            </button>
+            <button data-tab="players"
+                class="tab-button inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-background/50 hover:text-foreground">
+                Players
+            </button>
+            <button data-tab="payouts"
+                class="tab-button inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-background/50 hover:text-foreground">
+                Payouts
+            </button>
+            <button data-tab="seating"
+                class="tab-button inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-background/50 hover:text-foreground">
+                Seating
+            </button>
+            <button data-tab="settings"
+                class="tab-button inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-background/50 hover:text-foreground">
+                Settings
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="mt-4">
+            <!-- Timer Tab -->
+            <div id="tab-timer" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Timer Control Panel -->
+                    <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Timer Controls</h3>
+                        <div class="flex flex-col items-center gap-4 mb-6">
+                            <div id="timer-display" class="text-6xl font-mono font-bold tabular-nums">00:00</div>
+                            <div class="text-xl text-muted-foreground">
+                                Blinds: <span id="blinds-display">-- / --</span>
+                                (Ante: <span id="ante-display">0</span>)
+                            </div>
+                            <div id="status-badge"
+                                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                {{ tournament.status }}
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center gap-4 flex-wrap">
+                            <button id="btn-prev"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                                Prev Level
+                            </button>
+                            <button id="btn-start"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 text-white hover:bg-green-700 h-10 px-8 py-2">
+                                Start
+                            </button>
+                            <button id="btn-pause"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-yellow-600 text-white hover:bg-yellow-700 h-10 px-8 py-2">
+                                Pause
+                            </button>
+                            <button id="btn-next"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                                Next Level
+                            </button>
+                            <button id="btn-break"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-8 py-2">
+                                Break
+                            </button>
+                            <button id="btn-finish"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 text-white hover:bg-red-700 h-10 px-8 py-2">
+                                Finish Tournament
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tournament Stats -->
+                    <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Tournament Stats</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="rounded-lg bg-secondary/30 p-4">
+                                <p class="text-sm text-muted-foreground mb-1">Players Remaining</p>
+                                <p id="stats-players-remaining" class="text-3xl font-bold">--</p>
+                            </div>
+                            <div class="rounded-lg bg-secondary/30 p-4">
+                                <p class="text-sm text-muted-foreground mb-1">Total Entries</p>
+                                <p id="stats-total-entries" class="text-3xl font-bold">--</p>
+                            </div>
+                            <div class="rounded-lg bg-secondary/30 p-4">
+                                <p class="text-sm text-muted-foreground mb-1">Current Level</p>
+                                <p id="stats-current-level" class="text-3xl font-bold">--</p>
+                            </div>
+                            <div class="rounded-lg bg-secondary/30 p-4">
+                                <p class="text-sm text-muted-foreground mb-1">Prize Pool</p>
+                                <p id="stats-prize-pool" class="text-3xl font-bold">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Players Tab -->
+            <div id="tab-players" class="tab-content hidden">
+                <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold">Registered Players</h2>
+                        <span class="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">
+                            {{ tournament.registrations.count }} Total
+                        </span>
+                    </div>
+
+                    <!-- Table Balance Suggestion Block -->
+                    <div id="balance-suggestion-block" class="hidden mb-4 rounded-lg border-2 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span id="balance-suggestion-icon" class="text-2xl"></span>
+                                    <h3 id="balance-suggestion-title" class="font-semibold text-lg"></h3>
+                                </div>
+                                <p id="balance-suggestion-message" class="text-sm mb-3"></p>
+                                <div id="balance-suggestion-details" class="space-y-2"></div>
+                                <div id="balance-suggestion-actions" class="flex gap-2 mt-4"></div>
+                            </div>
+                            <button onclick="playerManager.hideBalanceSuggestion()"
+                                class="rounded-md p-1.5 hover:bg-muted transition-colors shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                        </svg>
+                        <input type="text" id="player-search-input" placeholder="Search or add player..."
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+
+                        <!-- Search Results Dropdown -->
+                        <div id="player-search-results"
+                            class="absolute top-full left-0 right-0 mt-1 rounded-md border border-border bg-popover text-popover-foreground shadow-md hidden z-50 max-h-60 overflow-auto">
+                            <!-- Results will be injected here -->
+                        </div>
+                    </div>
+
+                    <div class="overflow-auto max-h-[600px] pr-2 custom-scrollbar">
+                        <table class="w-full text-sm">
+                            <thead class="sticky top-0 bg-card z-10">
+                                <tr class="border-b border-border text-left">
+                                    <th class="pb-3 font-medium text-muted-foreground">Name</th>
+                                    <th class="pb-3 font-medium text-muted-foreground w-[80px] text-center">
+                                        {% if tournament.type == 'PAID' %}R/A{% else %}Points{% endif %}
+                                    </th>
+                                    <th class="pb-3 font-medium text-muted-foreground w-[100px] text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="player-list-body">
+                                <!-- Player rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-border/50">
+                        <button id="btn-add-player"
+                            class="w-full inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="8.5" cy="7" r="4" />
+                                <line x1="20" y1="8" x2="20" y2="14" />
+                                <line x1="23" y1="11" x2="17" y2="11" />
+                            </svg>
+                            Register New Player
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payouts Tab -->
+            <div id="tab-payouts" class="tab-content hidden">
+                <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 shadow-lg">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold">Prize Distribution</h2>
+                        <div class="flex gap-2">
+                            <button id="btn-add-payout"
+                                class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4">
+                                + Add Payout
+                            </button>
+                            <button id="btn-generate-payouts"
+                                class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 shadow-sm">
+                                Generate Payouts
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="rounded-lg bg-secondary/30 p-4">
+                            <p class="text-sm text-muted-foreground mb-1">Total Prize Pool</p>
+                            <p id="payout-prize-pool" class="text-3xl font-bold">$0</p>
+                        </div>
+                        <div class="rounded-lg bg-secondary/30 p-4">
+                            <p class="text-sm text-muted-foreground mb-1">Places Paid</p>
+                            <p id="payout-places-paid" class="text-3xl font-bold">0</p>
+                        </div>
+                    </div>
+
+                    <div class="overflow-auto max-h-[500px] custom-scrollbar">
+                        <table class="w-full text-sm">
+                            <thead class="sticky top-0 bg-card z-10">
+                                <tr class="border-b border-border text-left">
+                                    <th class="pb-3 font-medium text-muted-foreground">Place</th>
+                                    <th class="pb-3 font-medium text-muted-foreground">Player</th>
+                                    <th class="pb-3 font-medium text-muted-foreground text-right">Amount</th>
+                                    <th class="pb-3 font-medium text-muted-foreground text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payouts-list-body" class="divide-y divide-border/50">
+                                <tr>
+                                    <td colspan="4" class="p-8 text-center text-muted-foreground">
+                                        No payouts configured yet. Click "Generate Payouts" to create prize structure.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seating Tab -->
+            <div id="tab-seating" class="tab-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Players List Sidebar -->
+                    <div class="lg:col-span-1">
+                        <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 shadow-lg sticky top-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">Players</h3>
+                                <button id="btn-select-all-players"
+                                    class="text-xs text-primary hover:text-primary/80 font-medium">
+                                    Select All
+                                </button>
+                            </div>
+
+                            <div class="mb-4">
+                                <button id="btn-seat-selected"
+                                    class="w-full inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 shadow-sm">
+                                    Seat Selected Players
+                                </button>
+                            </div>
+
+                            <div id="seating-players-list" class="space-y-2 max-h-[600px] overflow-y-auto">
+                                <!-- Players will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tables Area -->
+                    <div class="lg:col-span-3">
+                        <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 shadow-lg">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 class="text-xl font-semibold">Table Seating</h2>
+                                    <p class="text-sm text-muted-foreground">Manage player seating assignments</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="btn-clear-tables"
+                                        class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-destructive/50 text-destructive bg-background hover:bg-destructive hover:text-destructive-foreground h-9 px-4">
+                                        Clear All
+                                    </button>
+                                    <button id="btn-add-table"
+                                        class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4">
+                                        + Add Table
+                                    </button>
+                                    <button id="btn-auto-seat"
+                                        class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 shadow-sm">
+                                        Auto Seat Players
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="tables-container" class="grid gap-6 md:grid-cols-2 xl:grid-cols-2">
+                        <!-- Tables will be rendered here -->
+                        <div
+                            class="col-span-full flex flex-col items-center justify-center py-12 text-center border border-dashed border-border/50 rounded-xl bg-card/30">
+                            <div class="rounded-full bg-muted/50 p-4 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    class="text-muted-foreground">
+                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                    <line x1="3" y1="9" x2="21" y2="9" />
+                                    <line x1="9" y1="21" x2="9" y2="9" />
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold">No Tables Yet</h3>
+                            <p class="text-muted-foreground max-w-sm mt-2">Click "Auto Seat Players" to generate tables and assign seats.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="tab-settings" class="tab-content hidden">
+                <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 shadow-lg max-w-2xl">
+                    <h2 class="text-xl font-semibold mb-6">Tournament Settings</h2>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Tournament Name</label>
+                            <input type="text" value="{{ tournament.name }}" disabled
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Tournament Type</label>
+                                <input type="text" value="{{ tournament.type }}" disabled
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Buy-in</label>
+                                <input type="text" value="${{ tournament.buy_in|default:'Free' }}" disabled
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Starting Stack</label>
+                                <input type="text" value="{{ tournament.stack }}" disabled
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Date & Time</label>
+                                <input type="text" value="{{ tournament.date|date:'Y-m-d H:i' }}" disabled
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-border">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">Blind Structure</h3>
+                                <button id="btn-add-level"
+                                    class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">
+                                    + Add Level
+                                </button>
+                            </div>
+                            <div class="overflow-auto max-h-[400px] custom-scrollbar">
+                                <table class="w-full text-sm">
+                                    <thead class="sticky top-0 bg-card z-10">
+                                        <tr class="border-b border-border text-left">
+                                            <th class="pb-3 font-medium text-muted-foreground w-[60px]">Level</th>
+                                            <th class="pb-3 font-medium text-muted-foreground">Small Blind</th>
+                                            <th class="pb-3 font-medium text-muted-foreground">Big Blind</th>
+                                            <th class="pb-3 font-medium text-muted-foreground">Ante</th>
+                                            <th class="pb-3 font-medium text-muted-foreground w-[100px]">Duration (min)</th>
+                                            <th class="pb-3 font-medium text-muted-foreground w-[100px]">Type</th>
+                                            <th class="pb-3 font-medium text-muted-foreground w-[120px] text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="blind-structure-body" class="divide-y divide-border/50">
+                                        <!-- Will be populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Registration Modal -->
+<div id="registration-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div class="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold">Register New Player</h2>
+            <button id="modal-close" class="rounded-md p-2 hover:bg-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="player-name" class="block text-sm font-medium mb-2">Player Name *</label>
+                <input type="text" id="player-name" placeholder="Enter player name"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            </div>
+
+            <div>
+                <label for="player-username" class="block text-sm font-medium mb-2">Username (Optional)</label>
+                <input type="text" id="player-username" placeholder="@username"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            </div>
+
+            <div>
+                <label for="player-phone" class="block text-sm font-medium mb-2">Phone (Optional)</label>
+                <input type="tel" id="player-phone" placeholder="+1234567890"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button id="modal-cancel"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">
+                Cancel
+            </button>
+            <button id="modal-register"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4">
+                Register Player
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Elimination Modal (for Free tournaments) -->
+<div id="elimination-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div class="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold">Eliminate Player</h2>
+            <button id="elimination-modal-close" class="rounded-md p-2 hover:bg-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <p class="text-muted-foreground mb-4">
+                <span id="elimination-player-name" class="font-semibold text-foreground"></span> is being eliminated.
+            </p>
+            <p class="text-sm text-muted-foreground mb-4">
+                How many players did they eliminate? (This will count as points in the overall standings)
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="bounty-count" class="block text-sm font-medium mb-2">Players Eliminated (Bounties)</label>
+                <input type="number" id="bounty-count" value="0" min="0" max="50"
+                    class="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-xl text-center font-bold ring-offset-background file:border-0 file:bg-transparent placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            </div>
+
+            <div class="flex gap-2 bg-secondary/30 rounded-lg p-3">
+                <button onclick="document.getElementById('bounty-count').stepDown()"
+                    class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary hover:bg-secondary/80 h-10 px-4">
+                    -1
+                </button>
+                <button onclick="document.getElementById('bounty-count').value = '0'"
+                    class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary hover:bg-secondary/80 h-10 px-4">
+                    Clear
+                </button>
+                <button onclick="document.getElementById('bounty-count').stepUp()"
+                    class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary hover:bg-secondary/80 h-10 px-4">
+                    +1
+                </button>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button id="elimination-modal-cancel"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">
+                Cancel
+            </button>
+            <button id="elimination-modal-confirm"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-orange-500 text-white hover:bg-orange-600 h-10 px-4">
+                Eliminate Player
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Break Modal -->
+<div id="break-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div class="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold">Start Break</h2>
+            <button id="break-modal-close" class="rounded-md p-2 hover:bg-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <p class="text-sm text-muted-foreground mb-4">
+                Enter the duration of the break in minutes
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="break-duration" class="block text-sm font-medium mb-2">Break Duration (minutes)</label>
+                <input type="number" id="break-duration" value="15" min="1" max="120"
+                    class="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-xl text-center font-bold ring-offset-background file:border-0 file:bg-transparent placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            </div>
+
+            <div class="flex gap-2 bg-secondary/30 rounded-lg p-3">
+                <button onclick="document.getElementById('break-duration').value = '5'"
+                    class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary hover:bg-secondary/80 h-10 px-4">
+                    5 min
+                </button>
+                <button onclick="document.getElementById('break-duration').value = '10'"
+                    class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary hover:bg-secondary/80 h-10 px-4">
+                    10 min
+                </button>
+                <button onclick="document.getElementById('break-duration').value = '15'"
+                    class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary hover:bg-secondary/80 h-10 px-4">
+                    15 min
+                </button>
+                <button onclick="document.getElementById('break-duration').value = '20'"
+                    class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary hover:bg-secondary/80 h-10 px-4">
+                    20 min
+                </button>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button id="break-modal-cancel"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">
+                Cancel
+            </button>
+            <button id="break-modal-confirm"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4">
+                Start Break
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Payout Modal -->
+<div id="payout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div class="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h2 id="payout-modal-title" class="text-2xl font-semibold">Add Payout</h2>
+            <button id="payout-modal-close" class="rounded-md p-2 hover:bg-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="payout-place" class="block text-sm font-medium mb-2">Place *</label>
+                <input type="number" id="payout-place" placeholder="1" min="1"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+            </div>
+
+            <div>
+                <label for="payout-amount" class="block text-sm font-medium mb-2">Amount *</label>
+                <input type="number" id="payout-amount" placeholder="1000" min="0" step="10"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button id="payout-modal-cancel"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">
+                Cancel
+            </button>
+            <button id="payout-modal-save"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4">
+                Save
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Table Modal -->
+<div id="add-table-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div class="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold">Add New Table</h2>
+            <button onclick="tableManager.hideAddTableModal()" class="rounded-md p-2 hover:bg-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="table-max-seats" class="block text-sm font-medium mb-2">Maximum Seats *</label>
+                <input type="number" id="table-max-seats" placeholder="9" min="2" max="10" value="9"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <p class="text-xs text-muted-foreground mt-1">Enter number between 2 and 10</p>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button onclick="tableManager.hideAddTableModal()"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">
+                Cancel
+            </button>
+            <button onclick="tableManager.addTable()"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4">
+                Add Table
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Move Player Modal -->
+<div id="move-player-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div class="relative w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold">Move Player</h2>
+            <button onclick="tableManager.hideMovePlayerModal()" class="rounded-md p-2 hover:bg-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <div class="p-4 bg-muted/30 rounded-lg">
+                <div class="text-sm font-medium mb-1">Moving Player:</div>
+                <div id="moving-player-name" class="text-lg font-semibold"></div>
+                <div id="moving-player-current" class="text-sm text-muted-foreground"></div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-3">Select New Position:</label>
+                <div id="available-positions-list" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+
+            <div class="pt-4 border-t">
+                <button onclick="tableManager.unseatPlayer()"
+                    class="w-full inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground h-10 px-4">
+                    Remove from Table (Unseat)
+                </button>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button onclick="tableManager.hideMovePlayerModal()"
+                class="flex-1 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/timer.js' %}?v=2"></script>
+<script src="{% static 'js/players.js' %}?v=2"></script>
+<script src="{% static 'js/tables.js' %}?v=2"></script>
+<script src="{% static 'js/blinds.js' %}?v=2"></script>
+<script src="{% static 'js/payouts.js' %}?v=2"></script>
+<script>
+    let timer, playerManager, tableManager, blindStructureManager, payoutManager;
+
+    // Tab Switching
+    function initTabs() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+
+                // Update buttons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('bg-background', 'text-foreground', 'shadow-sm');
+                    btn.classList.add('hover:bg-background/50', 'hover:text-foreground');
+                });
+                button.classList.add('bg-background', 'text-foreground', 'shadow-sm');
+                button.classList.remove('hover:bg-background/50', 'hover:text-foreground');
+
+                // Update content
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const tournamentId = {{ tournament.id }};
+        const tournamentType = '{{ tournament.type }}'; // 'PAID' or 'FREE'
+
+        // Initialize tabs
+        initTabs();
+
+        // Initialize managers
+        timer = new TournamentTimer(tournamentId);
+        playerManager = new PlayerManager(tournamentId, tournamentType);
+        tableManager = new TableManager(tournamentId);
+        blindStructureManager = new BlindStructureManager(tournamentId);
+        payoutManager = new PayoutManager(tournamentId);
+
+        // Make managers globally accessible
+        window.timer = timer;
+        window.payoutManager = payoutManager;
+        window.tableManager = tableManager;
+
+        // Update stats from timer data
+        const originalUpdateDisplay = timer.updateDisplay.bind(timer);
+        timer.updateDisplay = function(data) {
+            originalUpdateDisplay(data);
+
+            // Update stats in Timer tab
+            if (document.getElementById('stats-players-remaining')) {
+                document.getElementById('stats-players-remaining').textContent = data.players_remaining || '--';
+            }
+            if (document.getElementById('stats-total-entries')) {
+                document.getElementById('stats-total-entries').textContent = data.total_entries || '--';
+            }
+            if (document.getElementById('stats-current-level')) {
+                document.getElementById('stats-current-level').textContent = data.level ? data.level.number : '--';
+            }
+            // Prize pool calculation
+            const buyIn = {{ tournament.buy_in|default:0 }};
+            const prizePool = buyIn * (data.total_entries || 0);
+            if (document.getElementById('stats-prize-pool')) {
+                document.getElementById('stats-prize-pool').textContent = prizePool > 0 ? `$${prizePool.toLocaleString()}` : '--';
+            }
+            if (document.getElementById('payout-prize-pool')) {
+                document.getElementById('payout-prize-pool').textContent = prizePool > 0 ? `$${prizePool.toLocaleString()}` : '$0';
+            }
+        };
+    });
+</script>
+{% endblock %}

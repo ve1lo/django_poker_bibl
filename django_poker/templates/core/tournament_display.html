@@ -1,0 +1,557 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tournament.name }} - Display</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        background: '#0a0a0f', // Deeper black/purple
+                        foreground: '#ffffff',
+                        card: '#15151a',
+                        'card-foreground': '#ffffff',
+                        primary: '#4f46e5', // Indigo-600
+                        'primary-foreground': '#ffffff',
+                        secondary: '#27272a',
+                        'secondary-foreground': '#fafafa',
+                        muted: '#52525b',
+                        'muted-foreground': '#a1a1aa',
+                        accent: '#27272a',
+                        'accent-foreground': '#fafafa',
+                        destructive: '#ef4444',
+                        border: '#27272a',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .timer-glow {
+            text-shadow: 0 0 20px rgba(79, 70, 229, 0.5);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .digital-font {
+            font-family: 'JetBrains Mono', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+
+        body {
+            cursor: none;
+        }
+
+        .show-cursor {
+            cursor: default;
+        }
+
+        @keyframes slideInDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutUp {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+
+        .level-notification {
+            animation: slideInDown 0.5s ease-out;
+        }
+
+        .level-notification.hide {
+            animation: slideOutUp 0.5s ease-in;
+        }
+    </style>
+</head>
+
+<body class="bg-background text-foreground h-screen overflow-hidden flex flex-col p-6">
+    <!-- Reduced padding slightly -->
+
+    <!-- Top Bar: Info -->
+    <div class="flex justify-between items-start mb-4 h-[10%] shrink-0">
+        <!-- Left: Tournament Info -->
+        <div class="space-y-1">
+            <h1 class="text-3xl md:text-5xl font-bold tracking-tight text-white/90 truncate max-w-[50vw]">{{tournament.name}}</h1>
+
+            <div class="flex items-center gap-6 mt-2">
+                <span class="text-2xl md:text-3xl font-semibold text-primary" id="header-level">Level <span
+                        id="level-number">1</span></span>
+                <div class="h-8 w-px bg-zinc-700"></div>
+                <span class="text-2xl md:text-3xl font-medium text-zinc-300 digital-font tracking-wide">
+                    <span id="header-blinds">-- / --</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Right: Date/Time & Logo Placeholder -->
+        <div class="text-right">
+            <div class="text-2xl md:text-4xl font-bold font-mono text-zinc-400" id="clock">00:00</div>
+            <div class="mt-2 text-zinc-600 font-medium tracking-wide uppercase text-sm">Poker Tournament</div>
+        </div>
+    </div>
+
+    <!-- Center: Timer & Blinds -->
+    <div class="flex-grow flex flex-col items-center justify-center relative min-h-0">
+        <!-- Main Timer -->
+        <div id="timer-container" class="cursor-pointer group relative">
+            <div id="timer-display"
+                class="digital-font font-black leading-none tracking-tight text-center select-none transition-colors duration-300 timer-glow text-[18vw] text-white">
+                00:00
+            </div>
+            <div
+                class="absolute -bottom-4 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity text-sm text-zinc-500 font-mono">
+                CLICK TO EDIT
+            </div>
+        </div>
+
+        <!-- Current/Next Level Info -->
+        <div class="w-full max-w-5xl mt-8 grid grid-cols-[2fr_1fr] gap-12 text-center">
+            <!-- Current Level -->
+            <div class="space-y-2 border-r border-zinc-800 pr-12">
+                <p class="text-zinc-500 text-lg uppercase tracking-widest font-semibold">Current Level</p>
+                <p id="current-blinds-large" class="text-4xl md:text-6xl font-bold text-white digital-font">-- / --</p>
+                <p class="text-zinc-400 text-xl">Ante <span id="current-ante-large"
+                        class="text-white font-bold">--</span></p>
+            </div>
+
+            <!-- Next Level -->
+            <div class="space-y-2 pl-4">
+                <p class="text-zinc-600 text-sm uppercase tracking-widest font-semibold">Next Level</p>
+                <p id="next-blinds-large" class="text-2xl md:text-3xl font-bold text-zinc-500 digital-font">-- / --</p>
+                <p class="text-zinc-600 text-base">Ante <span id="next-ante-large"
+                        class="text-zinc-500 font-bold">--</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Bar: Stats & Controls -->
+    <div class="h-[15%] shrink-0 flex items-end justify-between gap-8 pt-4 border-t border-zinc-900 mt-4">
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-3 gap-8 flex-grow max-w-[60%]">
+            <div class="bg-card rounded-xl p-3 border border-zinc-800/50 flex flex-col justify-center">
+                <p class="text-zinc-500 text-xs md:text-sm uppercase font-semibold">Remaining</p>
+                <p id="stat-players" class="text-2xl md:text-4xl font-bold text-white digital-font">--</p>
+            </div>
+            <div class="bg-card rounded-xl p-3 border border-zinc-800/50 flex flex-col justify-center">
+                <p class="text-zinc-500 text-xs md:text-sm uppercase font-semibold">Entries</p>
+                <p id="stat-entries" class="text-2xl md:text-4xl font-bold text-white digital-font">--</p>
+            </div>
+            <div class="bg-card rounded-xl p-3 border border-zinc-800/50 flex flex-col justify-center">
+                <p class="text-zinc-500 text-xs md:text-sm uppercase font-semibold">Prize Pool</p>
+                <p id="stat-prizepool" class="text-2xl md:text-4xl font-bold text-green-400 digital-font">--</p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex gap-4 shrink-0 h-full pb-2">
+            <button id="btn-next-level"
+                class="h-full aspect-square rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-white flex items-center justify-center border border-zinc-700 transition-all active:scale-95 shadow-lg group"
+                title="Next Level">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="group-hover:translate-x-1 transition-transform">
+                    <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                    <line x1="19" y1="5" x2="19" y2="19"></line>
+                </svg>
+            </button>
+
+            <button id="btn-toggle"
+                class="h-full px-12 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-bold text-3xl tracking-wide uppercase transition-all active:scale-95 shadow-[0_0_20px_rgba(22,163,74,0.3)] flex items-center gap-3">
+                <span id="btn-toggle-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                        fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </span>
+                <span id="btn-toggle-text">Start</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Fullscreen Toggle (Hidden trigger area in top right) -->
+    <div id="fullscreen-trigger"
+        class="fixed top-0 right-0 w-24 h-24 z-50 cursor-pointer opacity-0 hover:opacity-10 transition-opacity bg-white/10"
+        title="Toggle Fullscreen"></div>
+
+    <!-- Level Up Notification -->
+    <div id="level-notification" class="fixed top-8 left-1/2 -translate-x-1/2 z-[200] hidden">
+        <div class="bg-gradient-to-r from-primary to-indigo-700 rounded-2xl shadow-2xl border-2 border-white/20 px-12 py-8 min-w-[500px] level-notification">
+            <div class="text-center">
+                <p class="text-white/80 uppercase tracking-widest text-sm font-semibold mb-2">Level Up!</p>
+                <p class="text-6xl font-black text-white mb-4">Level <span id="notif-level">1</span></p>
+                <div class="flex items-center justify-center gap-4">
+                    <p class="text-3xl font-bold text-white digital-font" id="notif-blinds">-- / --</p>
+                </div>
+                <p class="text-white/60 text-lg mt-3">Ante <span id="notif-ante" class="text-white font-bold">--</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Timer Modal -->
+    <div id="edit-modal"
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm hidden items-center justify-center fade-in">
+        <div class="bg-card w-full max-w-md rounded-2xl border border-zinc-800 p-8 shadow-2xl scale-in">
+            <h2 class="text-2xl font-bold text-white mb-6">Edit Timer</h2>
+
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Minutes</label>
+                    <input type="number" id="edit-minutes"
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-4 text-3xl font-mono text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none text-white"
+                        min="0" max="999">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-2">Seconds</label>
+                    <input type="number" id="edit-seconds"
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-4 text-3xl font-mono text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none text-white"
+                        min="0" max="59">
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button id="btn-cancel-edit"
+                    class="flex-1 py-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold transition-colors">Cancel</button>
+                <button id="btn-save-edit"
+                    class="flex-1 py-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold transition-colors shadow-lg shadow-primary/25">Save
+                    Time</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tournamentId = "{{ tournament.id }}";
+        const el = {
+            timer: document.getElementById('timer-display'),
+            timerContainer: document.getElementById('timer-container'),
+            levelNumber: document.getElementById('level-number'),
+            headerBlinds: document.getElementById('header-blinds'),
+            clock: document.getElementById('clock'),
+            currentBlinds: document.getElementById('current-blinds-large'),
+            currentAnte: document.getElementById('current-ante-large'),
+            nextBlinds: document.getElementById('next-blinds-large'),
+            nextAnte: document.getElementById('next-ante-large'),
+
+            statPlayers: document.getElementById('stat-players'),
+            statEntries: document.getElementById('stat-entries'),
+            statPrizePool: document.getElementById('stat-prizepool'),
+
+            btnToggle: document.getElementById('btn-toggle'),
+            btnToggleText: document.getElementById('btn-toggle-text'),
+            btnToggleIcon: document.getElementById('btn-toggle-icon'),
+            btnNextLevel: document.getElementById('btn-next-level'),
+
+            modal: document.getElementById('edit-modal'),
+            editMinutes: document.getElementById('edit-minutes'),
+            editSeconds: document.getElementById('edit-seconds'),
+            btnSaveEdit: document.getElementById('btn-save-edit'),
+            btnCancelEdit: document.getElementById('btn-cancel-edit'),
+
+            fsTrigger: document.getElementById('fullscreen-trigger'),
+
+            levelNotification: document.getElementById('level-notification'),
+            notifLevel: document.getElementById('notif-level'),
+            notifBlinds: document.getElementById('notif-blinds'),
+            notifAnte: document.getElementById('notif-ante'),
+        };
+
+        // Audio element for level up sound
+        const levelUpSound = new Audio("{% static 'sounds/level-up-289723.mp3' %}");
+
+        let state = {
+            status: 'SCHEDULED', // RUNNING, PAUSED, SCHEDULED, BREAK, FINISHED
+            remainingSeconds: 0,
+            timerInterval: null,
+            statusInterval: null,
+            lastServerUpdate: 0,
+            currentLevel: 0, // Track current level number
+        };
+
+        // --- Core Logic ---
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch(`/api/tournament/${tournamentId}/status/`);
+                const data = await res.json();
+
+                // Check if level changed
+                if (data.level && state.currentLevel > 0 && data.level.number !== state.currentLevel) {
+                    showLevelNotification(data.level);
+                }
+
+                // Update current level
+                if (data.level) {
+                    state.currentLevel = data.level.number;
+                }
+
+                // Sync state
+                state.status = data.status;
+
+                // Only sync time if variance is significant or we are not running locally smoothly
+                if (Math.abs(state.remainingSeconds - data.remaining_seconds) > 2 || state.status !== 'RUNNING') {
+                    state.remainingSeconds = data.remaining_seconds;
+                }
+
+                updateUI(data);
+                updateControls(data.status);
+
+            } catch (e) { console.error("Fetch status error", e); }
+        }
+
+        function startLocalTimer() {
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                if (state.status === 'RUNNING' && state.remainingSeconds > 0) {
+                    state.remainingSeconds--;
+                    updateTimerDisplay();
+                } else if (state.status === 'RUNNING' && state.remainingSeconds <= 0) {
+                    // Timer finished logic could go here (sound, etc.)
+                }
+                updateClock();
+            }, 1000);
+        }
+
+        // --- UI Updates ---
+
+        function updateUI(data) {
+            updateTimerDisplay();
+
+            // Level Info
+            if (data.level) {
+                el.levelNumber.textContent = data.level.number;
+                const blinds = `${data.level.small_blind.toLocaleString()} / ${data.level.big_blind.toLocaleString()}`;
+
+                if (data.level.is_break) {
+                    el.headerBlinds.textContent = "BREAK";
+                    el.currentBlinds.textContent = "BREAK";
+                    el.headerBlinds.classList.add('text-blue-400');
+                    el.currentBlinds.classList.add('text-blue-400');
+                } else {
+                    el.headerBlinds.textContent = blinds;
+                    el.currentBlinds.textContent = blinds;
+                    el.headerBlinds.classList.remove('text-blue-400');
+                    el.currentBlinds.classList.remove('text-blue-400');
+                }
+
+                el.currentAnte.textContent = data.level.ante.toLocaleString();
+            }
+
+            // Next Level Info
+            if (data.next_level) {
+                if (data.next_level.is_break) {
+                    el.nextBlinds.textContent = "BREAK";
+                } else {
+                    el.nextBlinds.textContent = `${data.next_level.small_blind.toLocaleString()} / ${data.next_level.big_blind.toLocaleString()}`;
+                }
+                el.nextAnte.textContent = data.next_level.ante.toLocaleString();
+            } else {
+                el.nextBlinds.textContent = "END";
+                el.nextAnte.textContent = "-";
+            }
+
+            // Stats
+            el.statPlayers.textContent = data.players_remaining;
+            el.statEntries.textContent = data.total_entries;
+            el.statPrizePool.textContent = `$${data.prize_pool.toLocaleString()}`;
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(state.remainingSeconds / 60);
+            const s = state.remainingSeconds % 60;
+            const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+            // Only update if changed to prevent flickering
+            if (el.timer.textContent !== timeStr) {
+                el.timer.textContent = timeStr;
+            }
+
+            // Dynamic coloring - only update if needed
+            const isPaused = state.status === 'PAUSED' || state.status === 'SCHEDULED';
+            const isLowTime = state.remainingSeconds <= 30;
+            const isMediumTime = state.remainingSeconds <= 120;
+
+            if (isPaused && !el.timer.classList.contains('text-zinc-500')) {
+                el.timer.classList.remove('text-red-500', 'text-yellow-500', 'text-white', 'animate-pulse');
+                el.timer.classList.add('text-zinc-500');
+            } else if (!isPaused && isLowTime && !el.timer.classList.contains('text-red-500')) {
+                el.timer.classList.remove('text-yellow-500', 'text-white', 'text-zinc-500');
+                el.timer.classList.add('text-red-500', 'animate-pulse');
+            } else if (!isPaused && !isLowTime && isMediumTime && !el.timer.classList.contains('text-yellow-500')) {
+                el.timer.classList.remove('text-red-500', 'text-white', 'text-zinc-500', 'animate-pulse');
+                el.timer.classList.add('text-yellow-500');
+            } else if (!isPaused && !isMediumTime && !el.timer.classList.contains('text-white')) {
+                el.timer.classList.remove('text-red-500', 'text-yellow-500', 'text-zinc-500', 'animate-pulse');
+                el.timer.classList.add('text-white');
+            }
+        }
+
+        function updateControls(status) {
+            el.btnToggle.classList.remove('bg-green-600', 'hover:bg-green-500', 'bg-yellow-600', 'hover:bg-yellow-500', 'bg-zinc-700');
+            el.btnToggle.classList.remove('shadow-[0_0_20px_rgba(22,163,74,0.3)]', 'shadow-[0_0_20px_rgba(202,138,4,0.3)]');
+
+            if (status === 'RUNNING') {
+                el.btnToggleText.textContent = "PAUSE";
+                el.btnToggle.classList.add('bg-yellow-600', 'hover:bg-yellow-500', 'shadow-[0_0_20px_rgba(202,138,4,0.3)]');
+                el.btnToggleIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+            } else {
+                el.btnToggleText.textContent = "START";
+                el.btnToggle.classList.add('bg-green-600', 'hover:bg-green-500', 'shadow-[0_0_20px_rgba(22,163,74,0.3)]');
+                el.btnToggleIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            el.clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function showLevelNotification(level) {
+            // Play sound
+            levelUpSound.play().catch(e => console.log("Sound play error:", e));
+
+            // Update notification content
+            el.notifLevel.textContent = level.number;
+
+            if (level.is_break) {
+                el.notifBlinds.textContent = "BREAK";
+                el.notifAnte.textContent = "-";
+            } else {
+                el.notifBlinds.textContent = `${level.small_blind.toLocaleString()} / ${level.big_blind.toLocaleString()}`;
+                el.notifAnte.textContent = level.ante.toLocaleString();
+            }
+
+            // Show notification
+            el.levelNotification.classList.remove('hidden');
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                const notification = el.levelNotification.querySelector('.level-notification');
+                notification.classList.add('hide');
+
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    el.levelNotification.classList.add('hidden');
+                    notification.classList.remove('hide');
+                }, 500);
+            }, 5000);
+        }
+
+        // --- Interaction Handlers ---
+
+        async function toggleGame() {
+            const action = (state.status === 'RUNNING') ? 'pause' : 'start';
+            await fetch(`/api/tournament/${tournamentId}/timer/${action}/`, { method: 'POST' });
+            fetchStatus(); // Immediate refresh
+        }
+
+        async function nextLevel() {
+            if (!confirm("Advance to next level?")) return;
+            await fetch(`/api/tournament/${tournamentId}/level/next/`, { method: 'POST' });
+            fetchStatus();
+        }
+
+        // Modal Logic
+        function openEditModal() {
+            const m = Math.floor(state.remainingSeconds / 60);
+            const s = state.remainingSeconds % 60;
+            el.editMinutes.value = m;
+            el.editSeconds.value = s;
+            el.modal.classList.remove('hidden');
+            el.modal.classList.add('flex');
+        }
+
+        function closeEditModal() {
+            el.modal.classList.add('hidden');
+            el.modal.classList.remove('flex');
+        }
+
+        async function saveTime() {
+            const m = parseInt(el.editMinutes.value) || 0;
+            const s = parseInt(el.editSeconds.value) || 0;
+
+            await fetch(`/api/tournament/${tournamentId}/timer/set/`, {
+                method: 'POST',
+                body: JSON.stringify({ minutes: m, seconds: s })
+            });
+
+            closeEditModal();
+            fetchStatus();
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        // Mouse Hiding
+        let hideTimeout;
+        document.addEventListener('mousemove', () => {
+            document.body.classList.add('show-cursor');
+            document.body.style.cursor = 'default';
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                document.body.classList.remove('show-cursor');
+                document.body.style.cursor = 'none';
+            }, 3000);
+        });
+
+        // --- Event Listeners ---
+        el.btnToggle.addEventListener('click', toggleGame);
+        el.btnNextLevel.addEventListener('click', nextLevel);
+
+        el.timerContainer.addEventListener('click', openEditModal);
+        el.btnCancelEdit.addEventListener('click', closeEditModal);
+        el.btnSaveEdit.addEventListener('click', saveTime);
+
+        el.fsTrigger.addEventListener('click', toggleFullscreen);
+
+        // --- Init ---
+        fetchStatus();
+        setInterval(fetchStatus, 2000); // 2s polling
+        startLocalTimer();
+        updateClock();
+
+    </script>
+</body>
+
+</html>
