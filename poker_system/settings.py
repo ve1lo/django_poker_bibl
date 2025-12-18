@@ -31,6 +31,9 @@ INSTALLED_APPS = [
 # Telegram Bot Settings
 TELEGRAM_BOT_TOKEN = '8361297949:AAHas9IJPgCVtlM4O7WqIF8__CoXutWS_Tw'  # Replace with actual token or env var
 
+# Site URL for bot links (use env var for production)
+SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

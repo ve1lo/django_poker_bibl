@@ -81,9 +81,8 @@ class Command(BaseCommand):
             # Create login token
             token = await sync_to_async(LoginToken.objects.create)(player=player)
 
-            # Generate link (assuming localhost for now, should be configurable)
-            # In production, this should use the actual domain
-            link = f"http://127.0.0.1:8000/bot/login/{token.token}/"
+            # Generate link using configured site URL
+            link = f"{settings.SITE_URL}/bot/login/{token.token}/"
 
             await update.message.reply_text(
                 f"🔐 *Ссылка для входа на сайт:*\n\n"
@@ -131,7 +130,7 @@ class Command(BaseCommand):
             # Build keyboard based on registration status
             keyboard = []
             if is_registered:
-                tournament_link = f"http://127.0.0.1:8000/tournament/{tournament.id}/info/"
+                tournament_link = f"{settings.SITE_URL}/tournament/{tournament.id}/info/"
                 keyboard.append([InlineKeyboardButton("📊 Открыть турнир", url=tournament_link)])
             else:
                 keyboard.append([InlineKeyboardButton("✅ Зарегистрироваться", callback_data=f"register_{tournament.id}")])
@@ -175,7 +174,7 @@ class Command(BaseCommand):
                 exists = await sync_to_async(Registration.objects.filter(player=player, tournament=tournament).exists)()
 
                 if exists:
-                    tournament_link = f"http://127.0.0.1:8000/tournament/{tournament.id}/info/"
+                    tournament_link = f"{settings.SITE_URL}/tournament/{tournament.id}/info/"
                     keyboard = [[InlineKeyboardButton("📊 Открыть турнир", url=tournament_link)]]
                     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -191,7 +190,7 @@ class Command(BaseCommand):
                         status='REGISTERED'
                     )
 
-                    tournament_link = f"http://127.0.0.1:8000/tournament/{tournament.id}/info/"
+                    tournament_link = f"{settings.SITE_URL}/tournament/{tournament.id}/info/"
                     keyboard = [[InlineKeyboardButton("📊 Открыть турнир", url=tournament_link)]]
                     reply_markup = InlineKeyboardMarkup(keyboard)
 
