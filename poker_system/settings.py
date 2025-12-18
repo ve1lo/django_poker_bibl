@@ -116,8 +116,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 CSRF_TRUSTED_ORIGINS = [
-    'srv1198231.hstgr.cloud',
-    '72.61.153.102',
+    'https://srv1198231.hstgr.cloud',
+    'http://srv1198231.hstgr.cloud',
+    'http://72.61.153.102',
 ]
 
 # Default primary key field type
