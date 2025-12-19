@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Registration - Poker System{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto animate-in fade-in duration-500 py-12">
+    <div class="mb-8 text-center">
+        <div class="mb-4 flex justify-center">
+            <div class="rounded-full bg-primary/10 p-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <line x1="19" x2="19" y1="8" y2="14" />
+                    <line x1="22" x2="16" y1="11" y2="11" />
+                </svg>
+            </div>
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            Complete Registration
+        </h1>
+        <p class="text-muted-foreground mt-2">
+            {% if telegram_username %}
+            Connecting Telegram account <span class="text-primary">@{{ telegram_username }}</span>
+            {% else %}
+            Connecting your Telegram account
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-8 shadow-lg">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                <div class="rounded-lg border {% if message.tags == 'error' %}border-destructive bg-destructive/10 text-destructive{% elif message.tags == 'success' %}border-primary bg-primary/10 text-primary{% else %}border-border bg-muted{% endif %} px-4 py-3 text-sm">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% for field in form %}
+            <div class="space-y-2">
+                <label for="{{ field.id_for_label }}"
+                    class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 {% if field.field.required %}after:content-['*'] after:ml-0.5 after:text-destructive{% endif %}">
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.help_text %}
+                <p class="text-sm text-muted-foreground">{{ field.help_text }}</p>
+                {% endif %}
+                {% if field.errors %}
+                <p class="text-sm font-medium text-destructive">{{ field.errors.0 }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="pt-4 space-y-3">
+                <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                    Complete Registration
+                </button>
+                <p class="text-xs text-center text-muted-foreground">
+                    By registering, you agree to link your Telegram account with Poker System
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <div class="mt-6 text-center">
+        <p class="text-sm text-muted-foreground">
+            Already have an account?
+            <a href="https://t.me/Poker_bibl_bot" target="_blank" class="text-primary hover:underline">
+                Get login link from bot
+            </a>
+        </p>
+    </div>
+</div>
+{% endblock %}

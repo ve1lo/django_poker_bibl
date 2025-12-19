@@ -5,7 +5,7 @@ from django.conf import settings
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 from core.models import Player, Tournament, Registration
-from bot.models import LoginToken
+from bot.models import LoginToken, RegistrationToken
 from asgiref.sync import sync_to_async
 from django.utils import timezone
 
@@ -23,11 +23,13 @@ class Command(BaseCommand):
         # Commands
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("login", self.login))
+        application.add_handler(CommandHandler("register", self.register))
         application.add_handler(CommandHandler("tournaments", self.tournaments))
 
         # Message handlers for keyboard buttons
         application.add_handler(MessageHandler(filters.Regex('^🎰 Турниры$'), self.tournaments))
         application.add_handler(MessageHandler(filters.Regex('^🔐 Логин$'), self.login))
+        application.add_handler(MessageHandler(filters.Regex('^📝 Регистрация$'), self.register))
 
         # Callbacks
         application.add_handler(CallbackQueryHandler(self.button_handler))
@@ -38,7 +40,8 @@ class Command(BaseCommand):
     def get_main_keyboard(self):
         """Returns the main menu keyboard"""
         keyboard = [
-            [KeyboardButton("🎰 Турниры"), KeyboardButton("🔐 Логин")]
+            [KeyboardButton("🎰 Турниры")],
+            [KeyboardButton("🔐 Логин"), KeyboardButton("📝 Регистрация")]
         ]
         return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -46,29 +49,24 @@ class Command(BaseCommand):
         user = update.effective_user
         telegram_id = str(user.id)
 
-        # Get or create player
-        player, created = await sync_to_async(Player.objects.get_or_create)(
-            telegram_id=telegram_id,
-            defaults={
-                'username': user.username,
-                'first_name': user.first_name,
-                'last_name': user.last_name
-            }
-        )
-
         main_keyboard = self.get_main_keyboard()
 
-        if created:
+        # Check if player exists
+        try:
+            player = await sync_to_async(Player.objects.get)(telegram_id=telegram_id)
             await update.message.reply_text(
-                f"Добро пожаловать, {user.first_name}! Вы зарегистрированы в Poker System.\n\n"
+                f"С возвращением, {user.first_name}! 👋\n\n"
                 f"Используйте меню ниже для навигации:",
                 reply_markup=main_keyboard
             )
-        else:
+        except Player.DoesNotExist:
             await update.message.reply_text(
-                f"С возвращением, {user.first_name}!\n\n"
-                f"Используйте меню ниже для навигации:",
-                reply_markup=main_keyboard
+                f"Добро пожаловать в Poker System, {user.first_name}! 🎰\n\n"
+                f"Для начала работы необходимо пройти регистрацию.\n"
+                f"Нажмите кнопку *📝 Регистрация* или используйте команду /register\n\n"
+                f"После регистрации вы сможете участвовать в турнирах и следить за своей статистикой.",
+                reply_markup=main_keyboard,
+                parse_mode='Markdown'
             )
 
     async def login(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -98,6 +96,44 @@ class Command(BaseCommand):
             await update.message.reply_text(
                 "❌ Вы не зарегистрированы. Пожалуйста, используйте /start сначала."
             )
+
+    async def register(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        telegram_id = str(user.id)
+
+        # Check if user already registered
+        try:
+            player = await sync_to_async(Player.objects.get)(telegram_id=telegram_id)
+            await update.message.reply_text(
+                f"ℹ️ Вы уже зарегистрированы как {player}!\n\n"
+                f"Для входа на сайт используйте команду /login"
+            )
+            return
+        except Player.DoesNotExist:
+            pass
+
+        # Create registration token
+        token = await sync_to_async(RegistrationToken.objects.create)(
+            telegram_id=telegram_id,
+            telegram_username=user.username,
+            telegram_first_name=user.first_name,
+            telegram_last_name=user.last_name
+        )
+
+        # Generate link using configured site URL
+        link = f"{settings.SITE_URL}/bot/register/{token.token}/"
+
+        await update.message.reply_text(
+            f"📝 *Ссылка для регистрации:*\n\n"
+            f"`{link}`\n\n"
+            f"⚠️ *ВАЖНО:* Если форма не открывается, скопируйте ссылку и откройте её в браузере (Chrome/Safari).\n\n"
+            f"📱 *Как открыть в браузере:*\n"
+            f"1. Нажмите на ссылку и удерживайте\n"
+            f"2. Выберите 'Открыть в браузере' или 'Open in Browser'\n\n"
+            f"✅ После регистрации ваш Telegram аккаунт будет связан с аккаунтом на сайте.\n\n"
+            f"⚠️ Ссылка одноразовая и действительна только для одной регистрации.",
+            parse_mode='Markdown'
+        )
 
     async def tournaments(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Fetch upcoming tournaments
